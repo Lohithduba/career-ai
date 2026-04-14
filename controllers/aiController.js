@@ -28,7 +28,7 @@ exports.generateRoadmap = async (req, res) => {
     try {
         const { targetJob, currentProfile } = req.body;
         // Use gemini-pro for complex logical tasks like roadmap generation
-        const model = genAI.getGenerativeModel({ model: "Gemini-2.5-Flash-Lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
         const prompt = `
             Act as a Senior Career Architect. 
@@ -76,7 +76,7 @@ exports.generateRoadmap = async (req, res) => {
 exports.generateAIQuiz = async (req, res) => {
     try {
         const { specialization, skills } = req.body;
-        const model = genAI.getGenerativeModel({ model: "Gemini-2.5-Flash-Lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
         const prompt = `Generate exactly 20 MCQs for ${specialization} with skills: ${skills.join(", ")}. Return ONLY JSON array: [{"q":"text","options":["A","B","C","D"],"a":"correct text"}]`;
         const result = await model.generateContent(prompt);
         const data = robustParse(result.response.text());
@@ -87,7 +87,7 @@ exports.generateAIQuiz = async (req, res) => {
 exports.analyzeResume = async (req, res) => {
     try {
         const { resumeText, jobDescription } = req.body;
-        const model = genAI.getGenerativeModel({ model: "Gemini-2.5-Flash-Lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
         const prompt = `
             Act as a Senior HR Tech Specialist and ATS. 
@@ -129,7 +129,7 @@ exports.analyzeResume = async (req, res) => {
 exports.chatWithAI = async (req, res) => {
     try {
         const { message, history } = req.body;
-        const model = genAI.getGenerativeModel({ model: "Gemini-2.5-Flash-Lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
         let formattedHistory = (history || []).map(item => ({
             role: item.role === 'user' ? 'user' : 'model',
             parts: [{ text: item.text || "" }]
@@ -145,7 +145,7 @@ exports.chatWithAI = async (req, res) => {
 exports.startInterview = async (req, res) => {
     try {
         const { role } = req.body;
-        const model = genAI.getGenerativeModel({ model: "Gemini-2.5-Flash-Lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
         const prompt = `Generate 5 interview questions for ${role}. Return ONLY JSON array of strings.`;
         const result = await model.generateContent(prompt);
         res.json(robustParse(result.response.text()));
@@ -156,7 +156,7 @@ exports.startInterview = async (req, res) => {
 exports.compareResumes = async (req, res) => {
     try {
         const { resumeA, resumeB, jobDesc } = req.body;
-        const model = genAI.getGenerativeModel({ model: "Gemini-2.5-Flash-Lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
         const prompt = `Compare Resume A and B for JD: ${jobDesc}. Return ONLY JSON: {"winner": "A", "scoreA": 80, "scoreB": 60, "winningPoints": ["Keywords"]}`;
         const result = await model.generateContent(prompt);
         res.json(robustParse(result.response.text()));
@@ -166,7 +166,7 @@ exports.compareResumes = async (req, res) => {
 exports.getIndustryTrends = async (req, res) => {
     try {
         const { sector } = req.body;
-        const model = genAI.getGenerativeModel({ model: "Gemini-2.5-Flash-Lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
         const prompt = `
             Act as a Global Market Analyst. Provide 2025 trends for the ${sector} sector.
@@ -211,7 +211,7 @@ exports.getIndustryTrends = async (req, res) => {
 exports.evaluateInterview = async (req, res) => {
     try {
         const { qna } = req.body;
-        const model = genAI.getGenerativeModel({ model: "Gemini-2.5-Flash-Lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
         const prompt = `Evaluate interview answers: ${JSON.stringify(qna)}. Return ONLY JSON: {"overallScore": 85, "feedback": "Great"}`;
         const result = await model.generateContent(prompt);
         res.json(robustParse(result.response.text()));
