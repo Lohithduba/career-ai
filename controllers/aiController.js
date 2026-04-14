@@ -129,16 +129,44 @@ exports.analyzeResume = async (req, res) => {
 exports.chatWithAI = async (req, res) => {
     try {
         const { message, history } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash" 
+        });
+
         let formattedHistory = (history || []).map(item => ({
             role: item.role === 'user' ? 'user' : 'model',
             parts: [{ text: item.text || "" }]
         }));
-        if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') formattedHistory.shift();
+
+        if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+            formattedHistory.shift();
+        }
+
         const chat = model.startChat({ history: formattedHistory });
-        const result = await chat.sendMessage(message);
+
+        const formattedPrompt = `
+You are CareerAI Assistant.
+
+Rules:
+- Format answers cleanly
+- Use bullet points
+- Use headings
+- Use short paragraphs
+- Use markdown formatting
+
+User Question:
+${message}
+`;
+
+        const result = await chat.sendMessage(formattedPrompt);
+
         res.json({ text: result.response.text() });
-    } catch (e) { res.status(500).json({ error: "Chat Fail" }); }
+
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: "Chat Fail" });
+    }
 };
 
 // 4. Interview Session
