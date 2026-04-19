@@ -15,10 +15,6 @@ const robustParse = (text) => {
     }
 };
 
-// 1. Generate 20 MCQs based on user profile
-const Groq = require("groq-sdk");
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 // THE MASTER CLEANER: Ensures we always return valid data to frontend
 const extractJSON = (text) => {
     try {
