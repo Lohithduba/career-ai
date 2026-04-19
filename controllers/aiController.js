@@ -28,7 +28,7 @@ exports.generateRoadmap = async (req, res) => {
     try {
         const { targetJob, currentProfile } = req.body;
         // Use gemini-pro for complex logical tasks like roadmap generation
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const prompt = `
             Act as a Senior Career Architect. 
@@ -76,7 +76,7 @@ exports.generateRoadmap = async (req, res) => {
 exports.generateAIQuiz = async (req, res) => {
     try {
         const { specialization, skills } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const prompt = `Generate exactly 20 MCQs for ${specialization} with skills: ${skills.join(", ")}. Return ONLY JSON array: [{"q":"text","options":["A","B","C","D"],"a":"correct text"}]`;
         const result = await model.generateContent(prompt);
         const data = robustParse(result.response.text());
@@ -87,7 +87,7 @@ exports.generateAIQuiz = async (req, res) => {
 exports.analyzeResume = async (req, res) => {
     try {
         const { resumeText, jobDescription } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const prompt = `
             Act as a Senior HR Tech Specialist and ATS. 
@@ -125,14 +125,10 @@ exports.analyzeResume = async (req, res) => {
         res.status(500).json({ error: "Neural analysis timeout. Please try again." });
     }
 };
-// 3. AI Chat Coach
 exports.chatWithAI = async (req, res) => {
     try {
         const { message, history } = req.body;
-
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.5-flash" 
-        });
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
         let formattedHistory = (history || []).map(item => ({
             role: item.role === 'user' ? 'user' : 'model',
@@ -140,32 +136,33 @@ exports.chatWithAI = async (req, res) => {
         }));
 
         if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-            formattedHistory.shift();
+            formattedHistory.shift(); 
         }
 
-        const chat = model.startChat({ history: formattedHistory });
+        const chat = model.startChat({
+            history: formattedHistory,
+            generationConfig: { maxOutputTokens: 1000 }
+        });
 
-        const formattedPrompt = `
-You are CareerAI Assistant.
+        // --- UPDATED SYSTEM CONTEXT FOR FORMATTING ---
+        const systemPrompt = `
+            You are a professional Career Coach. 
+            CRITICAL INSTRUCTION: Always format your responses using Markdown. 
+            - Use **bold text** for emphasis.
+            - Use bullet points (*) for lists of skills or steps.
+            - Use numbered lists (1.) for step-by-step roadmaps.
+            - Use ### for section headers.
+            - Keep paragraphs short and readable.
+            
+            User Query: ${message}
+        `;
 
-Rules:
-- Format answers cleanly
-- Use bullet points
-- Use headings
-- Use short paragraphs
-- Use markdown formatting
-
-User Question:
-${message}
-`;
-
-        const result = await chat.sendMessage(formattedPrompt);
-
-        res.json({ text: result.response.text() });
-
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: "Chat Fail" });
+        const result = await chat.sendMessage(systemPrompt);
+        const response = await result.response;
+        res.json({ text: response.text() });
+        
+    } catch (error) {
+        res.status(500).json({ error: "Communication link unstable." });
     }
 };
 
@@ -173,7 +170,7 @@ ${message}
 exports.startInterview = async (req, res) => {
     try {
         const { role } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const prompt = `Generate 5 interview questions for ${role}. Return ONLY JSON array of strings.`;
         const result = await model.generateContent(prompt);
         res.json(robustParse(result.response.text()));
@@ -184,7 +181,7 @@ exports.startInterview = async (req, res) => {
 exports.compareResumes = async (req, res) => {
     try {
         const { resumeA, resumeB, jobDesc } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const prompt = `Compare Resume A and B for JD: ${jobDesc}. Return ONLY JSON: {"winner": "A", "scoreA": 80, "scoreB": 60, "winningPoints": ["Keywords"]}`;
         const result = await model.generateContent(prompt);
         res.json(robustParse(result.response.text()));
@@ -194,7 +191,7 @@ exports.compareResumes = async (req, res) => {
 exports.getIndustryTrends = async (req, res) => {
     try {
         const { sector } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const prompt = `
             Act as a Global Market Analyst. Provide 2025 trends for the ${sector} sector.
@@ -239,7 +236,7 @@ exports.getIndustryTrends = async (req, res) => {
 exports.evaluateInterview = async (req, res) => {
     try {
         const { qna } = req.body;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const prompt = `Evaluate interview answers: ${JSON.stringify(qna)}. Return ONLY JSON: {"overallScore": 85, "feedback": "Great"}`;
         const result = await model.generateContent(prompt);
         res.json(robustParse(result.response.text()));
