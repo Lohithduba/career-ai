@@ -16,22 +16,48 @@ const robustParse = (text) => {
 };
 
 // 1. Generate 20 MCQs based on user profile
+const Groq = require("groq-sdk");
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+// THE MASTER CLEANER: Ensures we always return valid data to frontend
+const extractJSON = (text) => {
+    try {
+        const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        if (!jsonMatch) return null;
+        return JSON.parse(jsonMatch[0]);
+    } catch (e) {
+        console.error("JSON Extraction Error:", e);
+        return null;
+    }
+};
+
+// 1. Generate 20 technical questions (Llama 3.3 70B for high logic)
 exports.generateAIQuiz = async (req, res) => {
     try {
         const { specialization, skills } = req.body;
-        const prompt = `Generate exactly 20 technical MCQs for a professional in ${specialization} with skills: ${skills.join(", ")}. 
-        Return ONLY a JSON array of objects: [{"q": "question", "options": ["A", "B", "C", "D"], "a": "correct text"}].`;
+        
+        const prompt = `Act as a Senior Technical Interviewer. 
+        Generate exactly 20 technical multiple-choice questions for ${specialization} focusing on ${skills.join(", ")}.
+        
+        Requirement: You MUST return a JSON object with a key "quiz".
+        Format: {"quiz": [{"q": "Question text", "options": ["A", "B", "C", "D"], "a": "Correct answer text"}]}`;
 
         const completion = await groq.chat.completions.create({
             messages: [{ role: "user", content: prompt }],
-            model: "llama-3.1-8b-instant",
-            response_format: { type: "json_object" },
+            model: "llama-3.3-70b-versatile", // Use 70B for complex logic like 20 questions
+            response_format: { type: "json_object" }
         });
 
-        const data = robustParse(completion.choices[0].message.content);
-        res.json(data || []);
-    } catch (e) { 
-        res.status(500).json({ error: "Quiz Gen Failed" }); 
+        const rawData = extractJSON(completion.choices[0].message.content);
+        
+        // Convert Object {"quiz": [...]} to Array [...] for your frontend
+        const questions = rawData?.quiz || rawData; 
+        
+        if (!questions || !Array.isArray(questions)) throw new Error("Format Mismatch");
+        res.json(questions);
+    } catch (error) {
+        console.error("Quiz Error:", error);
+        res.status(500).json({ error: "AI failed to generate quiz." });
     }
 };
 
@@ -102,21 +128,49 @@ exports.generateRoadmap = async (req, res) => {
     }
 };
 
-// 5. Interview Session Starter
 exports.startInterview = async (req, res) => {
     try {
         const { role } = req.body;
-        const prompt = `Generate 5 technical interview questions for a ${role} role. Return ONLY a JSON array of strings.`;
+        
+        const prompt = `Generate 5 challenging interview questions for the role: ${role}.
+        Requirement: You MUST return a JSON object with a key "questions".
+        Format: {"questions": ["Question 1", "Question 2", "Question 3", "Question 4", "Question 5"]}`;
 
         const completion = await groq.chat.completions.create({
             messages: [{ role: "user", content: prompt }],
             model: "llama-3.1-8b-instant",
-            response_format: { type: "json_object" },
+            response_format: { type: "json_object" }
         });
 
-        res.json(robustParse(completion.choices[0].message.content));
-    } catch (e) { 
-        res.status(500).json({ error: "Interview initialization failed." }); 
+        const rawData = extractJSON(completion.choices[0].message.content);
+        
+        // Convert Object {"questions": [...]} to Array [...] for your frontend
+        const questionsArray = rawData?.questions || rawData;
+
+        if (!questionsArray || !Array.isArray(questionsArray)) throw new Error("Format Mismatch");
+        res.json(questionsArray);
+    } catch (error) {
+        console.error("Interview Error:", error);
+        res.status(500).json({ error: "AI failed to start interview." });
+    }
+};
+
+// 3. Interview Evaluator
+exports.evaluateInterview = async (req, res) => {
+    try {
+        const { qna, role } = req.body;
+        const prompt = `Evaluate these interview answers for a ${role} position: ${JSON.stringify(qna)}.
+        Return a JSON object: {"overallScore": number, "feedback": "string"}`;
+
+        const completion = await groq.chat.completions.create({
+            messages: [{ role: "user", content: prompt }],
+            model: "llama-3.1-8b-instant",
+            response_format: { type: "json_object" }
+        });
+
+        res.json(extractJSON(completion.choices[0].message.content));
+    } catch (error) {
+        res.status(500).json({ error: "Evaluation failed." });
     }
 };
 
@@ -153,23 +207,5 @@ exports.getIndustryTrends = async (req, res) => {
         res.json(robustParse(completion.choices[0].message.content));
     } catch (error) {
         res.status(500).json({ error: "Trends failed." });
-    }
-};
-
-// 8. Interview Evaluator
-exports.evaluateInterview = async (req, res) => {
-    try {
-        const { qna } = req.body;
-        const prompt = `Evaluate these interview answers: ${JSON.stringify(qna)}. Return ONLY JSON: {"overallScore": 85, "feedback": "Professional feedback text"}`;
-
-        const completion = await groq.chat.completions.create({
-            messages: [{ role: "user", content: prompt }],
-            model: "llama-3.1-8b-instant",
-            response_format: { type: "json_object" },
-        });
-
-        res.json(robustParse(completion.choices[0].message.content));
-    } catch (e) { 
-        res.status(500).json({ error: "Evaluation failed." }); 
     }
 };
